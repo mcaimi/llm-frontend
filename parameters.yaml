@@ -1,0 +1,23 @@
+---
+chromadb:
+  host: localhost
+  port: 8080
+  collection: "default"
+  collection_similarity: "cosine"
+
+vectorstore:
+  search_type: "similarity_score_threshold"
+  score: 0.6
+  max_objects: 10
+
+ollama:
+  baseurl: "http://localhost:11434"
+  model: "nomic-embed-text:latest"
+
+rag:
+  prompt: "<s> [INST] You are an helpful assistant tasked to retrieve informations from a knowledge base. You must respond precisely and in no more than four senteces. If you cannot respond please tell that you do not know the answer. Use the following context to answer the question. [/INST]
+
+[INST] Question: {question}
+Context: {context}
+
+Answer: [/INST]"

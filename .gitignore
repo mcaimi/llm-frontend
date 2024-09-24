@@ -1,0 +1,4 @@
+**/__pycache__/**
+*.local
+.python-version
+gradio_cached*

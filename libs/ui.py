@@ -2,11 +2,8 @@
 
 # import libs
 try:
-    import os
-    import time
     import gradio as gr
     from .bootup import load_config_parms, get_remote_vectorstore_client
-    from pathlib import Path
     from langchain_ollama import ChatOllama
     from langchain_core.prompts import PromptTemplate
     from langchain_core.output_parsers import StrOutputParser
@@ -22,7 +19,7 @@ class Ui(object):
     def __init__(self):
         self.web_interface = None
         self.config_params = load_config_parms()
-        self.retriever = get_remote_vectorstore_client(self.config_params).Retriever(search_type=self.config_params.vectorstore.search_type, kwargs={"k": self.config_params.vectorstore.max_objects, "score_threshold": self.config_params.vectorstore.score})
+        self.vector_store = get_remote_vectorstore_client(self.config_params)
         self.llm = ChatOllama(base_url=self.config_params.ollama.baseurl, model=self.config_params.ollama.model)
         self.prompt = PromptTemplate.from_template(self.config_params.rag.prompt)
         self.rag_chain = self.build_chain()
@@ -37,11 +34,26 @@ class Ui(object):
 
     # build rag chain
     def build_chain(self):
-        def format_docs(docs):
-            return "\n\n".join(doc.page_content for doc in docs)
+        def vector_search(message):
+            adapter = self.vector_store.Adapter()
+            result = adapter.similarity_search_with_score(query=message,
+                                                          k=self.config_params.vectorstore.max_objects)
+
+            retrieved_docs = {}
+            for res, score in result:
+                retrieved_docs[score] = res
+                print(f"* {score:3f} - [{res.metadata}]")
+
+            # build return object
+            context_data = [retrieved_docs[score] for score in sorted(list(retrieved_docs.keys())) if score < self.config_params.vectorstore.score]
+            if len(context_data) > self.config_params.vectorstore.max_objects:
+                print(f"Clamping number of results to {self.config_params.vectorstore.max_objects}...")
+                context_data = context_data[:self.config_params.vectorstore.max_objects]
+
+            return "\n\n".join(d.page_content for d in context_data)
 
         rag_chain = (
-            {"context": self.retriever | format_docs, "question": RunnablePassthrough()}
+            {"context": vector_search, "question": RunnablePassthrough()}
             | self.prompt
             | self.llm
             | StrOutputParser()

@@ -6,7 +6,6 @@ chromadb:
   collection_similarity: "cosine"
 
 vectorstore:
-  search_type: "similarity_score_threshold"
   score: 0.6
   max_objects: 10
 

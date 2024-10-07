@@ -8,14 +8,14 @@ try:
     from libs.utils.console_utils import ANSIColors
     from libs.utils.parameters import Parameters
     from libs.embedding.ollama import ollama_instance
-except Excepion as e:
+except Exception as e:
     print(f"Caught exception {e}, terminating")
     sys.exit(-1)
 
 
 def load_config_parms() -> Parameters:
     ttyWriter = ANSIColors()
-    config_file = os.getenv("CONFIG_FILE", "parameters.yaml.local")
+    config_file = os.getenv("CONFIG_FILE", "parameters.yaml")
 
     ttyWriter.print_success(text=f"Loading Configuration File {config_file}...")
     try:

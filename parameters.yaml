@@ -9,9 +9,16 @@ vectorstore:
   score: 0.6
   max_objects: 10
 
+service_type: "ollama"
+
 ollama:
   baseurl: "http://localhost:11434"
   model: "nomic-embed-text:latest"
+
+openai:
+  baseurl: "http://localhost:11434"
+  model: "nomic-embed-text:latest"
+  apikey: "your_api_key"
 
 rag:
   prompt: "<s> [INST] You are an helpful assistant tasked to retrieve informations from a knowledge base. You must respond precisely and in no more than four senteces. If you cannot respond please tell that you do not know the answer. Use the following context to answer the question. [/INST]

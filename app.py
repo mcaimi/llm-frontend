@@ -30,4 +30,3 @@ async def get_root():
 
 # attach gradio app
 web_ui.registerFastApiEndpoint(sd_app)
-

@@ -2,3 +2,4 @@
 *.local
 .python-version
 gradio_cached*
+.gradio

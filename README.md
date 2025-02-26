@@ -1,5 +1,7 @@
 # Retrieval Augmented Web Frontend
 
+[![Docker Repository on Quay](https://quay.io/repository/marcocaimi/llm-frontend/status "Docker Repository on Quay")](https://quay.io/repository/marcocaimi/llm-frontend)
+
 This is a RAG Web Application written using Gradio and FastAPI.
 It exposes a way to chat with an LLM while augmenting the response with precise data fetched from a Vector DB.
 

@@ -106,6 +106,22 @@ class Ui(object):
             ]
         )
 
+    # report backend type to UI
+    def get_backend_type(self) -> str:
+        if self.config_params.service_type == "ollama":
+            return f"Service: {self.config_params.service_type} ({self.config_params.ollama.baseurl}) - Model: {self.config_params.ollama.model}"
+        elif self.config_params.service_type == "openai":
+            return f"Service: {self.config_params.service_type} ({self.config_params.openai.baseurl}) - Model: {self.config_params.openai.model}"
+        else:
+            return f"Service: {self.config_params.service_type} unsupported"
+
+    # count objects in the vector db
+    def get_object_count(self, rag_switch) -> str:
+        if rag_switch is False:
+            return f"Object Count: {self.vector_store.Collection().count()}"
+        else:
+            return "RAG Bypass Active"
+
     # chain prediction callback
     def predict(self, message, history):
         msg = " "
@@ -124,6 +140,10 @@ class Ui(object):
                                              visible=True, show_label=True,
                                              label="Bypass RAG",
                                              info="Do not query the Vector DB for relevant embeddings, just go straight to the model.")
+
+                    gr.Textbox(label="AI Backend", value=self.get_backend_type, interactive=False)
+                    gr.Textbox(label="ChromaDB", value=self.get_object_count, every=gr.Timer(value=20), inputs=[rag_switch], interactive=False)
+
                     new_chat_button = gr.Button(
                         "New chat",
                         variant="primary",
@@ -139,8 +159,9 @@ class Ui(object):
                 with gr.Column(scale=5):
                     chatInterface = gr.ChatInterface(self.predict,
                                                      type="messages",
-                                                     chatbot=gr.Chatbot(min_height=500, resizeable=True,
+                                                     chatbot=gr.Chatbot(min_height=500, resizeable=True, label="Chat With Assistant",
                                                                         editable="user", show_copy_button=True, layout="panel",
+                                                                        avatar_images=("assets/rh_logo.png", "assets/ai_bot.gif"),
                                                                         autoscroll=True, type="messages"),
                                                      textbox=gr.MultimodalTextbox(placeholder="Do you need assistance?"),
                                                      multimodal=True,

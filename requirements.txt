@@ -3,5 +3,6 @@ langchain-chroma
 langchain-ollama
 langchain-openai
 fastapi
+fastapi[standard]
 gradio
 starlette

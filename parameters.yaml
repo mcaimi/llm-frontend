@@ -12,18 +12,24 @@ vectorstore:
 service_type: "ollama"
 
 ollama:
-  baseurl: "http://localhost:11434"
+  base_url: "http://localhost:11434"
   model: "nomic-embed-text:latest"
 
 openai:
-  baseurl: "http://localhost:11434"
+  base_url: "http://localhost:11434"
   model: "nomic-embed-text:latest"
-  apikey: "your_api_key"
+  api_key: "your_api_key"
 
-rag:
-  prompt: "<s> [INST] You are an helpful assistant tasked to retrieve informations from a knowledge base. You must respond precisely and in no more than four senteces. If you cannot respond please tell that you do not know the answer. Use the following context to answer the question. [/INST]
+llm:
+  temperature: 0.8
+  top_k: 40
+  top_p: 0.9
+  seed: 12345678
+  num_predict: 256
+  num_ctx: 2048
+  bypass_rag: True
+  system_prompt: "You are an helpful assistant tasked to retrieve informations from a knowledge base. You must respond precisely and in no more than four senteces. If you cannot respond please tell that you do not know the answer. Use the following context to answer the question."
+  user_prompt: "Question: {question}
+                Context: {context}
 
-[INST] Question: {question}
-Context: {context}
-
-Answer: [/INST]"
+                Answer: "

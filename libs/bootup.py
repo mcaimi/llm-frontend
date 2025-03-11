@@ -32,17 +32,18 @@ def load_config_parms() -> Parameters:
         ttyWriter.print_error(text=e)
         raise e
 
+
 def get_remote_vectorstore_client(parms: Parameters) -> RemoteChromaClient:
     ttyWriter = ANSIColors()
     if parms.service_type == "ollama":
         ttyWriter.print_warning(f"Running Ollama with model {parms.ollama.model}")
-        ttyWriter.print_warning(f"Ollama API URL: {parms.ollama.baseurl}")
-        embed_func = ollama_instance(base_url=parms.ollama.baseurl, model=parms.ollama.model)
+        ttyWriter.print_warning(f"Ollama API URL: {parms.ollama.base_url}")
+        embed_func = ollama_instance(base_url=parms.ollama.base_url, model=parms.ollama.model)
     elif parms.service_type == "openai":
         ttyWriter.print_warning(f"Running OpenAI-compatible endpoint with model {parms.openai.model}")
-        ttyWriter.print_warning(f"OpenAI API URL: {parms.openai.baseurl}")
-        ttyWriter.print_warning(f"OpenAI API KEY: {parms.openai.apikey}")
-        embed_func = openai_instance(base_url=parms.openai.baseurl, model=parms.openai.model, api_key=parms.openai.apikey)
+        ttyWriter.print_warning(f"OpenAI API URL: {parms.openai.base_url}")
+        ttyWriter.print_warning(f"OpenAI API KEY: {parms.openai.api_key}")
+        embed_func = openai_instance(base_url=parms.openai.base_url, model=parms.openai.model, api_key=parms.openai.api_key)
     else:
         ttyWriter.print_error(f"Unsupported embedding endpoint: {parms.service_type}")
         raise Exception(f"{parms.service_type}")

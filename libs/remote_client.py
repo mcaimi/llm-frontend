@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import uuid
 from typing import Callable
-from tqdm import tqdm
 from langchain_chroma import Chroma
 from langchain_core.vectorstores import VectorStoreRetriever
 from chromadb import HttpClient, Collection

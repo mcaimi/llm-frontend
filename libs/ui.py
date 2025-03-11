@@ -4,9 +4,8 @@
 try:
     import gradio as gr
     from .bootup import load_config_parms, get_remote_vectorstore_client
-    from langchain_ollama import ChatOllama
-    from langchain_openai import ChatOpenAI
-    from langchain_core.prompts import PromptTemplate
+    from .model.adapter import ChatModel
+    from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.output_parsers import StrOutputParser
     from langchain_core.runnables import RunnablePassthrough
 except Exception as e:
@@ -14,23 +13,27 @@ except Exception as e:
     raise e
 
 # define globals
-GRADIO_CUSTOM_PATH="/rag_ui"
+GRADIO_CUSTOM_PATH = "/rag_ui"
 
 class Ui(object):
     def __init__(self):
         self.web_interface = None
         self.config_params = load_config_parms()
         self.browser_store = gr.BrowserState([], storage_key=f"_chat_history_{self.config_params.service_type}")
-        self.vector_store = get_remote_vectorstore_client(self.config_params)
-        if self.config_params.service_type == "openai":
-            self.llm = ChatOpenAI(base_url=self.config_params.openai.baseurl, model=self.config_params.openai.model, api_key=self.config_params.openai.apikey)
-        elif self.config_params.service_type == "ollama":
-            self.llm = ChatOllama(base_url=self.config_params.ollama.baseurl, model=self.config_params.ollama.model)
-        else:
+        if self.config_params.llm.bypass_rag is False:
+            self.vector_store = get_remote_vectorstore_client(self.config_params)
+
+        self.llm_class = ChatModel(self.config_params)
+        self.llm = self.llm_class.model()
+        if self.llm is None:
             raise Exception(f"Unsupported chat endpoint: {self.config_params.service_type}")
 
-        self.prompt = PromptTemplate.from_template(self.config_params.rag.prompt)
-        self.build_chain()
+        self.prompt = ChatPromptTemplate([
+            ("system", self.config_params.llm.system_prompt),
+            ("user", self.config_params.llm.user_prompt)
+            ]
+        )
+        self.build_chain(rag_switch=self.config_params.llm.bypass_rag)
 
     # read html components
     def html_component(self, path):
@@ -40,9 +43,25 @@ class Ui(object):
         except Exception:
             raise gr.Error(f"Html Component {path} not found", duration=5)
 
+    # rebuild prompt template
+    def rebuild_prompt(self, sysprompt: str, rag_switch: bool):
+        if sysprompt == "":
+            sysprompt = self.config_params.llm.system_prompt
+
+        self.prompt = ChatPromptTemplate([
+                ("system", sysprompt),
+                ("user", self.config_params.llm.user_prompt)
+            ])
+
+        self.build_chain(rag_switch)
+
     # build rag chain
     def build_chain(self, rag_switch=False):
         if rag_switch is False:
+            self.vector_store = getattr(self, "vector_store", None)
+            if self.vector_store is None:
+                self.vector_store = get_remote_vectorstore_client(self.config_params)
+
             def vector_search(message):
                 adapter = self.vector_store.Adapter()
                 result = adapter.similarity_search_with_score(query=message,
@@ -106,15 +125,6 @@ class Ui(object):
             ]
         )
 
-    # report backend type to UI
-    def get_backend_type(self) -> str:
-        if self.config_params.service_type == "ollama":
-            return f"Service: {self.config_params.service_type} ({self.config_params.ollama.baseurl}) - Model: {self.config_params.ollama.model}"
-        elif self.config_params.service_type == "openai":
-            return f"Service: {self.config_params.service_type} ({self.config_params.openai.baseurl}) - Model: {self.config_params.openai.model}"
-        else:
-            return f"Service: {self.config_params.service_type} unsupported"
-
     # count objects in the vector db
     def get_object_count(self, rag_switch) -> str:
         if rag_switch is False:
@@ -129,6 +139,15 @@ class Ui(object):
             msg = msg + chunk
             yield msg
 
+    # update llm interface
+    def trigger_llm_reload(self, temp, top_k, top_p, num_predict, num_ctx, seed, rag_switch):
+        print(f"Refreshing LLM Client T:{temp} top_k: {top_k} top_p: {top_p} num_p: {num_predict} num_ctx: {num_ctx} seed: {seed}")
+        self.llm_class.refresh(top_k,
+                                 top_p, num_predict,
+                                 num_ctx, temp, seed)
+        self.llm = self.llm_class.model()
+        self.build_chain(rag_switch)
+
     # build interface for a locally hosted model
     def buildUi(self):
         # render interface
@@ -136,12 +155,12 @@ class Ui(object):
             gr.HTML(value=self.html_component("assets/header.html"))
             with gr.Row():
                 with gr.Column(scale=1):
-                    rag_switch = gr.Checkbox(value=False,
+                    rag_switch = gr.Checkbox(value=self.config_params.llm.bypass_rag,
                                              visible=True, show_label=True,
                                              label="Bypass RAG",
                                              info="Do not query the Vector DB for relevant embeddings, just go straight to the model.")
 
-                    gr.Textbox(label="AI Backend", value=self.get_backend_type, interactive=False)
+                    gr.Textbox(label="AI Backend", value=self.llm_class.model_type, interactive=False)
                     gr.Textbox(label="ChromaDB", value=self.get_object_count, every=gr.Timer(value=20), inputs=[rag_switch], interactive=False)
 
                     new_chat_button = gr.Button(
@@ -159,14 +178,14 @@ class Ui(object):
                 with gr.Column(scale=5):
                     chatInterface = gr.ChatInterface(self.predict,
                                                      type="messages",
-                                                     chatbot=gr.Chatbot(min_height=500, resizeable=True, label="Chat With Assistant",
+                                                     chatbot=gr.Chatbot(min_height=800, resizeable=True, label="Chat With Assistant",
                                                                         editable="user", show_copy_button=True, layout="panel",
                                                                         avatar_images=("assets/rh_logo.png", "assets/ai_bot.gif"),
                                                                         autoscroll=True, type="messages"),
                                                      textbox=gr.MultimodalTextbox(placeholder="Do you need assistance?"),
                                                      multimodal=True,
                                                      theme="soft",
-                                                     examples=["What are the advantages of openshift?", "Write a C function that reverses a string"],
+                                                     examples=["Write a Python script that downloads the index page from google.com using BeautifulSoup.", "Write a C function that reverses a string", "Tell me about RedHat"],
                                                      cache_examples=True,
                                                      show_progress="full",
                                                      submit_btn=True,
@@ -179,8 +198,54 @@ class Ui(object):
                                                      flagging_options=["Like", "Spam", "Inappropriate", "Other"],
                                                      )
 
+                with gr.Column(scale=1):
+                    sysprompt_value = gr.Textbox(label="System Personality", value=self.config_params.llm.system_prompt, interactive=True)
+                    prompt_regen_btn = gr.Button("Rebuild Prompt", variant="primary", size="md")
+                    llm_temp = gr.Slider(label="Temperature",
+                                         minimum=0.0,
+                                         maximum=1.0,
+                                         step=0.05,
+                                         value=self.config_params.llm.temperature,
+                                         interactive=True)
+                    llm_top_k = gr.Slider(label="top_k",
+                                          minimum=0.0,
+                                          maximum=100.0,
+                                          step=1,
+                                          value=self.config_params.llm.top_k,
+                                          interactive=True)
+                    llm_top_p = gr.Slider(label="top_p",
+                                          minimum=0.0,
+                                          maximum=1.0,
+                                          step=0.05,
+                                          value=self.config_params.llm.top_p,
+                                          interactive=True)
+                    llm_num_predict = gr.Slider(label="Number of Tokens",
+                                                minimum=10,
+                                                maximum=1024,
+                                                step=1,
+                                                value=self.config_params.llm.num_predict,
+                                                interactive=True)
+                    llm_ctx_win = gr.Slider(label="Context Window",
+                                            minimum=512,
+                                            maximum=8192,
+                                            step=1,
+                                            value=self.config_params.llm.num_ctx,
+                                            interactive=True)
+                    llm_seed = gr.Textbox(label="Seed", value=self.config_params.llm.seed, interactive=False)
+
             # rag bypass switch
             rag_switch.input(fn=self.build_chain, inputs=[rag_switch])
+
+            # rebuild prompt button
+            prompt_regen_btn.click(fn=self.rebuild_prompt, inputs=[sysprompt_value, rag_switch])
+
+            # update llm interface
+            gr.on(triggers=[llm_temp.input, llm_top_k.input, llm_top_p.input, llm_num_predict.input, llm_ctx_win.input],
+                  fn=self.trigger_llm_reload,
+                  inputs=[llm_temp, llm_top_k, llm_top_p, llm_num_predict, llm_ctx_win, llm_seed, rag_switch],
+                  show_api=False,
+                  queue=False,
+                  )
 
             # chatbot content save callback
             gr.on(triggers=[chatInterface.textbox.submit],

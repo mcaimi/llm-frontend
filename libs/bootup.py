@@ -4,7 +4,7 @@ import os
 import sys
 from yaml import safe_load, YAMLError
 try:
-    from libs.remote_client import RemoteChromaClient
+    from libs.chroma.remote_client import LlamaIndexChromaRemote
     from libs.utils.console_utils import ANSIColors
     from libs.utils.parameters import Parameters
     from libs.embedding.ollama import ollama_instance
@@ -33,7 +33,7 @@ def load_config_parms() -> Parameters:
         raise e
 
 
-def get_remote_vectorstore_client(parms: Parameters) -> RemoteChromaClient:
+def get_remote_vectorstore_client(parms: Parameters) -> LlamaIndexChromaRemote:
     ttyWriter = ANSIColors()
     if parms.service_type == "ollama":
         ttyWriter.print_warning(f"Running Ollama with model {parms.ollama.model}")
@@ -51,11 +51,11 @@ def get_remote_vectorstore_client(parms: Parameters) -> RemoteChromaClient:
     ttyWriter.print_success("Chroma Client: Initializing Remote Client")
     ttyWriter.print_success(text=f"ChromaDB Instance @ host={parms.chromadb.host}:{parms.chromadb.port}/{parms.chromadb.collection}...")
     try:
-        cc = RemoteChromaClient(host=parms.chromadb.host,
-                                port=int(parms.chromadb.port),
-                                collection=parms.chromadb.collection,
-                                collection_similarity=parms.chromadb.collection_similarity,
-                                embedding_function=embed_func)
+        cc = LlamaIndexChromaRemote(host=parms.chromadb.host,
+                                    port=int(parms.chromadb.port),
+                                    collection=parms.chromadb.collection,
+                                    collection_similarity=parms.chromadb.collection_similarity,
+                                    embedding_function=embed_func)
         ttyWriter.print_warning(f"Objects in collection: {cc.Collection().count()}")
         return cc
     except Exception as e:

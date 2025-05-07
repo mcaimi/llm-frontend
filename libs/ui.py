@@ -63,22 +63,18 @@ class Ui(object):
                 self.vector_store = get_remote_vectorstore_client(self.config_params)
 
             def vector_search(message):
-                adapter = self.vector_store.Adapter()
-                result = adapter.similarity_search_with_score(query=message,
-                                                              k=self.config_params.vectorstore.max_objects)
-
-                retrieved_docs = {}
-                for res, score in result:
-                    retrieved_docs[score] = res
-                    print(f"* {score:3f} - [{res.metadata}]")
+                # query the vector store
+                nodes_with_score = self.vector_store.Retrieve(query_string=message,
+                                                              top_k=self.config_params.vectorstore.max_objects,
+                                                              query_mode=self.config_params.vectorstore.query_mode)
 
                 # build return object
-                context_data = [retrieved_docs[score] for score in sorted(list(retrieved_docs.keys())) if score < self.config_params.vectorstore.score]
+                context_data = [valid_node for valid_node in nodes_with_score if valid_node.score < self.config_params.vectorstore.score]
                 if len(context_data) > self.config_params.vectorstore.max_objects:
                     print(f"Clamping number of results to {self.config_params.vectorstore.max_objects}...")
                     context_data = context_data[:self.config_params.vectorstore.max_objects]
 
-                return "\n\n".join(d.page_content for d in context_data)
+                return "\n\n".join(d.text for d in context_data)
 
             rag_chain = (
                 {"context": vector_search, "question": RunnablePassthrough()} | self.prompt | self.llm | StrOutputParser()
@@ -128,7 +124,9 @@ class Ui(object):
     # count objects in the vector db
     def get_object_count(self, rag_switch) -> str:
         if rag_switch is False:
-            return f"Object Count: {self.vector_store.Collection().count()}"
+            self.vector_store = getattr(self, "vector_store", None)
+            if self.vector_store is not None:
+                return f"Object Count: {self.vector_store.Collection().count()}"
         else:
             return "RAG Bypass Active"
 

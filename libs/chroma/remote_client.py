@@ -39,7 +39,7 @@ class LlamaIndexChromaRemote(object):
 
     def Retrieve(self, query_string: str, top_k: int, query_mode: str = "default") -> list:
         # embed query
-        query_embedding = self._embed_function.embed_query(query_string)
+        query_embedding = self._embed_function.get_query_embedding(query_string)
         # query the vector store
         vs_query = VectorStoreQuery(
                 query_embedding=query_embedding,

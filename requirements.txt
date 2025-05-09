@@ -9,4 +9,5 @@ starlette
 llama-index
 llama-index-core
 llama-index-vector-stores-chroma
-llama-index-embeddings-langchain
+llama-index-embeddings-ollama
+llama-index-embeddings-openai

@@ -1,4 +1,4 @@
-chromadb==1.0.7
+chromadb==1.0.9
 langchain
 langchain-ollama
 langchain-openai

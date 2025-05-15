@@ -8,20 +8,20 @@ class ChatModel(object):
         self.config_params = config_params
 
         if self.config_params.service_type == "openai":
-            self.llm = ChatOpenAI(base_url = self.config_params.openai.base_url,
-                                  model = self.config_params.openai.model,
-                                  api_key = self.config.openai.api_key,
-                                  temperature = self.config_params.llm.temperature,
-                                  max_tokens = self.config_params.llm.num_predict)
+            self.llm = ChatOpenAI(base_url=self.config_params.openai.base_url,
+                                  model=self.config_params.openai.model,
+                                  api_key=self.config_params.openai.api_key,
+                                  temperature=self.config_params.llm.temperature,
+                                  max_tokens=self.config_params.llm.num_predict)
         elif self.config_params.service_type == "ollama":
-            self.llm = ChatOllama(base_url = self.config_params.ollama.base_url,
-                                  model = self.config_params.ollama.model,
-                                  top_k = self.config_params.llm.top_k,
-                                  top_p = self.config_params.llm.top_p,
-                                  num_predict = self.config_params.llm.num_predict,
-                                  num_ctx = self.config_params.llm.num_ctx,
-                                  temperature = self.config_params.llm.temperature,
-                                  seed = self.config_params.llm.seed)
+            self.llm = ChatOllama(base_url=self.config_params.ollama.base_url,
+                                  model=self.config_params.ollama.model,
+                                  top_k=self.config_params.llm.top_k,
+                                  top_p=self.config_params.llm.top_p,
+                                  num_predict=self.config_params.llm.num_predict,
+                                  num_ctx=self.config_params.llm.num_ctx,
+                                  temperature=self.config_params.llm.temperature,
+                                  seed=self.config_params.llm.seed)
         else:
             self.llm = None
 

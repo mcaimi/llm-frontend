@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-frontend
+  template:
+    metadata:
+      labels:
+        app: llm-frontend
+    spec:
+      volumes:
+        - name: parameters
+          secret:
+            secretName: parameters
+      containers:
+      - name: llm-frontend
+        image: img_placeholder
+        imagePullPolicy: Always
+        env:
+          - name: CONFIG_FILE
+            value: /tmp/parameters.yaml
+        resources: {}
+        volumeMounts:
+        - name: parameters
+          mountPath: "/tmp/parameters.yaml"
+          subPath: parameters.yaml
+          readOnly: true

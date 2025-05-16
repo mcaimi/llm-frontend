@@ -1,0 +1,23 @@
+namespace: rag-dev
+namePrefix: rag-
+nameSuffix: -demo
+
+commonAnnotations:
+  com.redhat.ai-lab/rag-component: llm-frontend
+
+images:
+- name: img_placeholder
+  newName: quay.io/marcocaimi/llm-frontend
+  newTag: ocp
+
+resources:
+- deployment.yaml
+- networking.yaml
+
+secretGenerator:
+- files:
+  - parameters.yaml
+  name: parameters
+
+patches:
+- path: mem-sizing.yaml

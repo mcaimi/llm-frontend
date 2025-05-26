@@ -44,13 +44,16 @@ class Ui(object):
             raise gr.Error(f"Html Component {path} not found", duration=5)
 
     # rebuild prompt template
-    def rebuild_prompt(self, sysprompt: str, rag_switch: bool):
+    def rebuild_prompt(self, sysprompt: str, userprompt: str, rag_switch: bool):
         if sysprompt == "":
             sysprompt = self.config_params.llm.system_prompt
 
+        if userprompt == "":
+            userprompt = self.config_params.llm.user_prompt
+
         self.prompt = ChatPromptTemplate([
                 ("system", sysprompt),
-                ("user", self.config_params.llm.user_prompt)
+                ("user", userprompt)
             ])
 
         self.build_chain(rag_switch)
@@ -70,6 +73,7 @@ class Ui(object):
 
                 # build return object
                 context_data = [valid_node for valid_node in nodes_with_score if valid_node.score < self.config_params.vectorstore.score]
+                print(f"Got {len(context_data)} document chunks from the vector database...")
                 if len(context_data) > self.config_params.vectorstore.max_objects:
                     print(f"Clamping number of results to {self.config_params.vectorstore.max_objects}...")
                     context_data = context_data[:self.config_params.vectorstore.max_objects]
@@ -161,6 +165,8 @@ class Ui(object):
                     gr.Textbox(label="AI Backend", value=self.llm_class.model_type, interactive=False)
                     gr.Textbox(label="ChromaDB", value=self.get_object_count, every=gr.Timer(value=20), inputs=[rag_switch], interactive=False)
 
+                    gr.Markdown("### Chat Sessions History")
+
                     new_chat_button = gr.Button(
                         "New chat",
                         variant="primary",
@@ -183,7 +189,7 @@ class Ui(object):
                                                      textbox=gr.MultimodalTextbox(placeholder="Do you need assistance?"),
                                                      multimodal=True,
                                                      theme="soft",
-                                                     examples=["Write a Python script that downloads the index page from google.com using BeautifulSoup.", "Write a C function that reverses a string", "Tell me about RedHat"],
+                                                     examples=["Write a Python script that downloads the index page from google.com using BeautifulSoup.", "Write a C function that reverses a string", "Tell me about RedHat", "How can I load and convert an image from RGB to grayscale using OpenCV"],
                                                      cache_examples=True,
                                                      show_progress="full",
                                                      submit_btn=True,
@@ -197,7 +203,8 @@ class Ui(object):
                                                      )
 
                 with gr.Column(scale=1):
-                    sysprompt_value = gr.Textbox(label="System Personality", value=self.config_params.llm.system_prompt, interactive=True)
+                    sysprompt_value = gr.Textbox(label="System Prompt", value=self.config_params.llm.system_prompt, interactive=True)
+                    userprompt_value = gr.Textbox(label="User Prompt", value=self.config_params.llm.user_prompt, interactive=True)
                     prompt_regen_btn = gr.Button("Rebuild Prompt", variant="primary", size="md")
                     llm_temp = gr.Slider(label="Temperature",
                                          minimum=0.0,
@@ -235,7 +242,7 @@ class Ui(object):
             rag_switch.input(fn=self.build_chain, inputs=[rag_switch])
 
             # rebuild prompt button
-            prompt_regen_btn.click(fn=self.rebuild_prompt, inputs=[sysprompt_value, rag_switch])
+            prompt_regen_btn.click(fn=self.rebuild_prompt, inputs=[sysprompt_value, userprompt_value, rag_switch])
 
             # update llm interface
             gr.on(triggers=[llm_temp.input, llm_top_k.input, llm_top_p.input, llm_num_predict.input, llm_ctx_win.input],
